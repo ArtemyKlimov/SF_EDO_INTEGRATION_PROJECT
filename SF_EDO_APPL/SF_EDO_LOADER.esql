@@ -1,0 +1,58 @@
+
+
+CREATE COMPUTE MODULE SF_EDO_LOADER_GetFile
+	DECLARE REMOTE_DIRECTORY EXTERNAL CHARACTER '';
+	DECLARE LOCAL_DIRECTORY EXTERNAL CHARACTER '';
+	DECLARE REMOTE_SERVER EXTERNAL CHARACTER '';
+	DECLARE FILENAME_PATTERN EXTERNAL CHARACTER '';
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		SET OutputLocalEnvironment.Destination.File.Directory = LOCAL_DIRECTORY;  
+		DECLARE envRef REFERENCE TO OutputLocalEnvironment.Destination.File;
+		SET envRef.Remote.ServerDirectory = REMOTE_DIRECTORY; --> Устанавливаем адрес удаленной директории, из которой будет получен файл
+		SET envRef.Remote.Server = REMOTE_SERVER;	--> Устанавливаем адрес удаленного сервера
+		SET envRef.Remote.Name = FILENAME_PATTERN;   --> устанавливаем шаблон имени
+		RETURN TRUE; --> получаем документ по SFTP
+	END;
+
+END MODULE;
+
+
+CREATE COMPUTE MODULE SF_EDO_LOADER_Validate
+	DECLARE FILE_ENCODING EXTERNAL CHARACTER '';
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		DECLARE EXIT HANDLER FOR SQLSTATE LIKE '' BEGIN
+			THROW USER EXCEPTION MESSAGE 3000 VALUES('Неверный формат входящего документа');
+		END;	
+		
+		DECLARE dataBLOB BLOB InputRoot.BLOB.BLOB;
+		--парсим входящий документ как XML
+		CREATE LASTCHILD OF Environment.Variables.Container DOMAIN ('XMLNSC') PARSE(dataBLOB ENCODING InputRoot.Properties.Encoding CCSID FILE_ENCODING OPTIONS RootBitStream );
+		DECLARE document CHAR Environment.Variables.Container."Контейнер"."Документ";  --> получаем содержимое документа в base64
+		DECLARE documentName CHAR Environment.Variables.Container."Контейнер"."ДокументИмя";  -->получаем имя документа
+		CREATE LASTCHILD OF Environment.Variables.Document DOMAIN ('XMLNSC') PARSE(BASE64DECODE(document)  ENCODING InputRoot.Properties.Encoding CCSID FILE_ENCODING OPTIONS RootBitStream );
+		
+		SET Environment.Variables.isDocumentValid = TRUE;  --> по умолчанию считаем, что документ валидный
+		CREATE LASTCHILD OF OutputRoot DOMAIN('XMLNSC');
+		SET OutputRoot = Environment.Variables.Document;
+		PROPAGATE TO TERMINAL 'out1';  --> валидируем документ
+		IF NOT Environment.Variables.isDocumentValid THEN
+			THROW USER EXCEPTION MESSAGE 3004 VALUES ('Входящий документ');  -->кидаем ошибку с кодом 3004 и описанием ошибки
+			RETURN FALSE; 
+		END IF;
+		CREATE LASTCHILD OF OutputRoot DOMAIN('XMLNSC');
+		SET OutputRoot = Environment.Variables.Container;  
+		RETURN TRUE;  --Если документ валидный, помещаем его в очередь INT.SF_EDO_SIGNER.Q
+	END;
+
+END MODULE;
+
+CREATE COMPUTE MODULE SF_EDO_LOADER_InvalidDocument
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		SET Environment.Variables.isDocumentValid =  FALSE;  -->устанавливаем переменной значение FALSE если документ невалиден		
+		RETURN FALSE;
+	END;
+
+END MODULE;

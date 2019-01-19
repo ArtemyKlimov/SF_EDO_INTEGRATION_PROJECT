@@ -1,0 +1,124 @@
+
+CREATE COMPUTE MODULE SF_EDO_SIGNER_GetSign
+	DECLARE LDAP_USER EXTERNAL CHARACTER '';
+	DECLARE LDAP_PASSWORD EXTERNAL CHARACTER '';
+	DECLARE LDAP_SERVER EXTERNAL CHARACTER '';
+	DECLARE LDAP_PORT EXTERNAL CHARACTER '';
+	DECLARE LDAP_SEARCH_BASE EXTERNAL CHARACTER '';
+	DECLARE LDAP_USER_ATTRIBUTE EXTERNAL CHARACTER '';
+	DECLARE LDAP_PROFILE_ATTRIBUTE EXTERNAL CHARACTER '';
+	DECLARE SYSTEM_NAME EXTERNAL CHARACTER '';
+	DECLARE WEB_SERVICE_URL EXTERNAL CHARACTER '';
+	DECLARE SIGN_TYPE EXTERNAL CHARACTER '';
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		DECLARE inRef REFERENCE TO InputRoot.XMLNSC."Контейнер";
+		
+		DECLARE user CHAR inRef."Пользователь";
+		DECLARE mqrfh2Ref REFERENCE TO OutputRoot.MQRFH2.usr;
+		CREATE LASTCHILD OF mqrfh2Ref NAME 'usids';
+		DECLARE usidsRef REFERENCE TO mqrfh2Ref.usids;
+		DECLARE result CHARACTER;
+		CALL getUSIDs(user, LDAP_USER, LDAP_PASSWORD, LDAP_SERVER, LDAP_PORT, LDAP_SEARCH_BASE, LDAP_USER_ATTRIBUTE, LDAP_PROFILE_ATTRIBUTE, usidsRef) INTO result;
+		IF result = 'No results found' THEN  --> Если профайл пользователя не найден
+			THROW USER EXCEPTION MESSAGE 3005 VALUES ('Права пользователя на загрузку файла не найдены');
+			RETURN FALSE;			
+		ELSEIF result IS NOT NULL THEN			
+			THROW USER EXCEPTION MESSAGE 3000 VALUES (result);
+			RETURN FALSE;
+		END IF;
+		DECLARE userProfile CHAR usidsRef.[1];  -->берем первый найденный профайл
+		CALL CreateTustCoreRequest(inRef, userProfile);
+		CALL SaveDocumentContentToEnvironment(inRef, userProfile); -->сохраняем данные входящего документа и найденный профайл пользователя
+		
+		
+		RETURN TRUE;
+	END;
+	
+	CREATE PROCEDURE CreateTustCoreRequest(IN inRef REFERENCE, IN userProfile CHARACTER)
+	BEGIN
+		CALL FillHTTPHeader(); --> заполняем HTTP заголовки
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'JSON';
+		CREATE LASTCHILD OF OutputRoot.JSON NAME 'Data';
+		DECLARE ref REFERENCE TO OutputRoot.JSON.Data;
+		CREATE LASTCHILD OF ref TYPE NameValue NAME 'signType' VALUE 0;
+		CREATE LASTCHILD OF ref TYPE NameValue NAME 'data' VALUE inRef."Документ";
+		CREATE LASTCHILD OF ref TYPE NameValue NAME 'signature' VALUE '';
+		CREATE LASTCHILD OF ref TYPE NameValue NAME 'signatureResult' VALUE FALSE;
+		CREATE LASTCHILD OF ref TYPE NameValue NAME 'signatureDetails' VALUE NULL; 
+		CREATE LASTCHILD OF ref TYPE NameValue NAME 'needCertCheck' VALUE FALSE;
+		CREATE LASTCHILD OF ref TYPE NameValue NAME 'certResult' VALUE FALSE;
+		CREATE LASTCHILD OF ref TYPE (JSON.Array) NAME 'certDetails' VALUE NULL;
+		CREATE LASTCHILD OF ref TYPE (JSON.Array) NAME 'signDetails' VALUE NULL;
+		CREATE LASTCHILD OF ref TYPE NameValue NAME 'externalDigest' VALUE FALSE;
+		CREATE LASTCHILD OF ref TYPE NameValue NAME 'signer' VALUE userProfile;
+	END;
+	
+	CREATE PROCEDURE FillHTTPHeader()
+	BEGIN
+		CREATE NEXTSIBLING OF OutputRoot.Properties DOMAIN 'HTTPRequestHeader';
+		SET OutputRoot.HTTPRequestHeader.SystemName = SYSTEM_NAME; 
+		SET OutputRoot.HTTPRequestHeader.Method= 'PUT';
+	END;
+	
+	CREATE PROCEDURE SaveDocumentContentToEnvironment(IN inRef REFERENCE, IN userProfile CHARACTER)
+	BEGIN		
+		SET Environment.Variables.Container = inRef;
+		SET Environment.Variables.userProfile = userProfile;
+	END;
+END MODULE;
+
+
+CREATE COMPUTE MODULE SF_EDO_SIGNER_ProcessHTTPSuccess
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		DECLARE inRef REFERENCE TO InputRoot.JSON.Data;
+		DECLARE signature CHAR TRIM(inRef.signature);  --> обрезаем лишние пробелы
+		
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'MQMD';
+		SET OutputRoot.MQMD.CodedCharSetId = 1208;
+		SET OutputRoot.MQMD.Format = MQFMT_RF_HEADER_2;
+		CREATE LASTCHILD OF OutputRoot DOMAIN 'MQRFH2';
+		SET OutputRoot.MQRFH2.(MQRFH2.Field)CodedCharSetId  = 1208;
+		DECLARE mqrfhRef REFERENCE TO OutputRoot.MQRFH2;
+		CREATE LASTCHILD OF OutputRoot DOMAIN ('XMLNSC');
+		SET OutputRoot.XMLNSC = Environment.Variables.Container; --Восстанавливаем исходное сообщение
+		SET OutputRoot.XMLNSC."ЭЦП" = signature;
+		RETURN TRUE; --Помещаем сообщение в очередь INT.SF_EDO_SENDER.Q
+	END;
+	
+	
+END MODULE;
+
+CREATE COMPUTE MODULE SF_EDO_SIGNER_ProcessHTTPError
+	DECLARE soapenv NAMESPACE 'http://schemas.xmlsoap.org/soap/envelope/';
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		DECLARE ERROR_CODE CHARACTER COALESCE(InputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.soapenv:Fault.detail.*.errorCode, '');  --> получаем код ошибк
+		DECLARE ERROR_STRING CHARACTER COALESCE(InputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.soapenv:Fault.detail.*.errorString, ''); --> Получаем описание ошибки
+		THROW USER EXCEPTION MESSAGE 3001 VALUES (ERROR_CODE, ERROR_STRING);
+		RETURN FALSE;
+	END;	
+END MODULE;
+
+CREATE COMPUTE MODULE SF_EDO_SIGNER_ProcessHTTPFailure
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		THROW USER EXCEPTION MESSAGE 3002 VALUES('Ошибка вызова веб-сервиса');
+		RETURN FALSE;
+	END;	
+END MODULE;
+
+
+CREATE PROCEDURE getUSIDs(IN pin CHARACTER,
+							IN userName CHARACTER,
+							IN password CHARACTER,
+							IN server CHARACTER,
+							IN port CHARACTER,
+							IN searchBase CHARACTER,
+							IN oridAttr CHARACTER,
+							IN usidAttr CHARACTER,
+							INOUT usids REFERENCE)
+RETURNS CHARACTER 
+LANGUAGE JAVA
+EXTERNAL NAME "cmx.FeeRegistersUtils.getUSIDs";

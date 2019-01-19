@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:ComIbmCompute.msgnode="ComIbmCompute.msgnode" xmlns:ComIbmJavaCompute.msgnode="ComIbmJavaCompute.msgnode" xmlns:ComIbmMQInput.msgnode="ComIbmMQInput.msgnode" xmlns:ComIbmWSRequest.msgnode="ComIbmWSRequest.msgnode" xmlns:ErrorHandler.subflow="ErrorHandler.subflow" xmlns:Logger.subflow="Logger.subflow" xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmlns:eflow="http://www.ibm.com/wbi/2005/eflow" xmlns:utility="http://www.ibm.com/wbi/2005/eflow_utility"
+    nsURI="SF_EDO_SENDER.msgflow" nsPrefix="SF_EDO_SENDER.msgflow">
+  <eClassifiers xmi:type="eflow:FCMComposite" name="FCMComposite_1">
+    <eSuperTypes href="http://www.ibm.com/wbi/2005/eflow#//FCMBlock"/>
+    <translation xmi:type="utility:TranslatableString" key="SF_EDO_SENDER" bundleName="SF_EDO_SENDER" pluginId="SF_EDO_APPL"/>
+    <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/SF_EDO_APPL/icons/full/obj16/SF_EDO_SENDER.gif"/>
+    <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/SF_EDO_APPL/icons/full/obj30/SF_EDO_SENDER.gif"/>
+    <composition>
+      <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="94,207" queueName="INT.SF_EDO_SENDER.Q">
+        <translation xmi:type="utility:ConstantString" string="MQIn"/>
+      </nodes>
+      <nodes xmi:type="Logger.subflow:FCMComposite_1" xmi:id="FCMComposite_1_2" location="192,207">
+        <translation xmi:type="utility:ConstantString" string="EnterLog"/>
+      </nodes>
+      <nodes xmi:type="ErrorHandler.subflow:FCMComposite_1" xmi:id="FCMComposite_1_3" location="178,293" queueName="INT.SF_EDO_SENDER.Q.ERR">
+        <translation xmi:type="utility:ConstantString" string="ErrorHandler"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="299,207" computeExpression="esql://routine/#SF_EDO_SENDER_SendSF.Main">
+        <translation xmi:type="utility:ConstantString" string="SendSF"/>
+      </nodes>
+      <nodes xmi:type="Logger.subflow:FCMComposite_1" xmi:id="FCMComposite_1_5" location="525,167" LOG_PATH="/LOGS/SF_EDO/SF_EDO_SENDER_HTTPError.log" PatternLevel2="${CURRENT_TIMSTAMP} ${Environment.Variables.FileName}" PatternLevel2.internal_npcompiler="com.ibm.etools.mft.ibmnodes.compilers.TracePatternPropertyCompiler" PatternLevel1="${CURRENT_TIMSTAMP} ${Environment.Variables.FileName}&#xD;&#xA;${Root}" PatternLevel1.internal_npcompiler="com.ibm.etools.mft.ibmnodes.compilers.TracePatternPropertyCompiler">
+        <translation xmi:type="utility:ConstantString" string="HTTPAuthErrorLog"/>
+      </nodes>
+      <nodes xmi:type="Logger.subflow:FCMComposite_1" xmi:id="FCMComposite_1_6" location="511,20" LOG_PATH="/LOGS/SF_EDO/SF_EDO_SENDER_HTTPError.log" PatternLevel2="${CURRENT_TIMSTAMP} ${Environment.Variables.FileName}" PatternLevel2.internal_npcompiler="com.ibm.etools.mft.ibmnodes.compilers.TracePatternPropertyCompiler" PatternLevel1="${CURRENT_TIMSTAMP} ${Environment.Variables.FileName}&#xD;&#xA;${Root}" PatternLevel1.internal_npcompiler="com.ibm.etools.mft.ibmnodes.compilers.TracePatternPropertyCompiler">
+        <translation xmi:type="utility:ConstantString" string="HTTPAuthFailureLog"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_7" location="647,167" computeExpression="esql://routine/#SF_EDO_SENDER_ProcessHTTPError.Main">
+        <translation xmi:type="utility:ConstantString" string="ProcessHTTPAuthError"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_8" location="634,20" computeExpression="esql://routine/#SF_EDO_SENDER_ProcessHTTPFailure.Main">
+        <translation xmi:type="utility:ConstantString" string="ProcessHTTPAuthFailure"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_9" location="634,95" computeExpression="esql://routine/#SF_EDO_SENDER_ProcessHTTPAuthSuccess.Main">
+        <translation xmi:type="utility:ConstantString" string="ProcessHTTPAuthSuccess"/>
+      </nodes>
+      <nodes xmi:type="ComIbmWSRequest.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_10" location="405,95" URLSpecifier="http://localhost" httpVersion="1.1" protocol="TLS" messageDomainProperty="JSON">
+        <translation xmi:type="utility:ConstantString" string="HTTPRequest"/>
+      </nodes>
+      <nodes xmi:type="Logger.subflow:FCMComposite_1" xmi:id="FCMComposite_1_11" location="512,95" LOG_PATH="/LOGS/SF_EDO/SF_EDO_SENDER_HTTPSuccess.log" PatternLevel2="${CURRENT_TIMSTAMP} ${Environment.Variables.FileName}" PatternLevel2.internal_npcompiler="com.ibm.etools.mft.ibmnodes.compilers.TracePatternPropertyCompiler" PatternLevel1="${CURRENT_TIMSTAMP} ${Environment.Variables.FileName}&#xD;&#xA;${Root}" PatternLevel1.internal_npcompiler="com.ibm.etools.mft.ibmnodes.compilers.TracePatternPropertyCompiler">
+        <translation xmi:type="utility:ConstantString" string="HTTPAuthSuccessLog"/>
+      </nodes>
+      <nodes xmi:type="Logger.subflow:FCMComposite_1" xmi:id="FCMComposite_1_12" location="513,322" LOG_PATH="/LOGS/SF_EDO/SF_EDO_SENDER_HTTPSuccess.log" PatternLevel2="${CURRENT_TIMSTAMP} ${Environment.Variables.FileName}" PatternLevel2.internal_npcompiler="com.ibm.etools.mft.ibmnodes.compilers.TracePatternPropertyCompiler" PatternLevel1="${CURRENT_TIMSTAMP} ${Environment.Variables.FileName}&#xD;&#xA;${Root}" PatternLevel1.internal_npcompiler="com.ibm.etools.mft.ibmnodes.compilers.TracePatternPropertyCompiler">
+        <translation xmi:type="utility:ConstantString" string="HTTPSuccessLog"/>
+      </nodes>
+      <nodes xmi:type="Logger.subflow:FCMComposite_1" xmi:id="FCMComposite_1_14" location="526,394" LOG_PATH="/LOGS/SF_EDO/SF_EDO_SENDER_HTTPError.log" PatternLevel2="${CURRENT_TIMSTAMP} ${Environment.Variables.FileName}" PatternLevel2.internal_npcompiler="com.ibm.etools.mft.ibmnodes.compilers.TracePatternPropertyCompiler" PatternLevel1="${CURRENT_TIMSTAMP} ${Environment.Variables.FileName}&#xD;&#xA;${Root}" PatternLevel1.internal_npcompiler="com.ibm.etools.mft.ibmnodes.compilers.TracePatternPropertyCompiler">
+        <translation xmi:type="utility:ConstantString" string="HTTPErrorLog"/>
+      </nodes>
+      <nodes xmi:type="Logger.subflow:FCMComposite_1" xmi:id="FCMComposite_1_15" location="512,247" LOG_PATH="/LOGS/SF_EDO/SF_EDO_SENDER_HTTPError.log" PatternLevel2="${CURRENT_TIMSTAMP} ${Environment.Variables.FileName}" PatternLevel2.internal_npcompiler="com.ibm.etools.mft.ibmnodes.compilers.TracePatternPropertyCompiler" PatternLevel1="${CURRENT_TIMSTAMP} ${Environment.Variables.FileName}&#xD;&#xA;${Root}" PatternLevel1.internal_npcompiler="com.ibm.etools.mft.ibmnodes.compilers.TracePatternPropertyCompiler">
+        <translation xmi:type="utility:ConstantString" string="HTTPFailureLog"/>
+      </nodes>
+      <nodes xmi:type="ComIbmWSRequest.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_17" location="406,322" URLSpecifier="http://localhost" httpVersion="1.1" protocol="TLS" messageDomainProperty="JSON">
+        <translation xmi:type="utility:ConstantString" string="HTTPRequest1"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_18" location="635,322" computeExpression="esql://routine/#SF_EDO_SENDER_ProcessHTTPAuthSuccess.Main">
+        <translation xmi:type="utility:ConstantString" string="ProcessHTTPSuccess"/>
+      </nodes>
+      <nodes xmi:type="ComIbmJavaCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_19" location="780,323" javaClass="SF_EDO_SENDER_SaveGuidInDB">
+        <translation xmi:type="utility:ConstantString" string="SaveGuidInDB"/>
+      </nodes>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_2" targetNode="FCMComposite_1_3" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.catch" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_3" targetNode="FCMComposite_1_4" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_4" targetNode="FCMComposite_1_8" sourceNode="FCMComposite_1_6" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_5" targetNode="FCMComposite_1_5" sourceNode="FCMComposite_1_10" sourceTerminalName="OutTerminal.error" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_6" targetNode="FCMComposite_1_7" sourceNode="FCMComposite_1_5" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_7" targetNode="FCMComposite_1_6" sourceNode="FCMComposite_1_10" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_8" targetNode="FCMComposite_1_9" sourceNode="FCMComposite_1_11" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_9" targetNode="FCMComposite_1_11" sourceNode="FCMComposite_1_10" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_10" targetNode="FCMComposite_1_10" sourceNode="FCMComposite_1_4" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_11" targetNode="FCMComposite_1_14" sourceNode="FCMComposite_1_17" sourceTerminalName="OutTerminal.error" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_13" targetNode="FCMComposite_1_12" sourceNode="FCMComposite_1_17" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_15" targetNode="FCMComposite_1_15" sourceNode="FCMComposite_1_17" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_16" targetNode="FCMComposite_1_18" sourceNode="FCMComposite_1_12" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_17" targetNode="FCMComposite_1_17" sourceNode="FCMComposite_1_4" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_18" targetNode="FCMComposite_1_8" sourceNode="FCMComposite_1_15" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_19" targetNode="FCMComposite_1_7" sourceNode="FCMComposite_1_14" sourceTerminalName="OutTerminal.Output" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_20" targetNode="FCMComposite_1_19" sourceNode="FCMComposite_1_18" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+    </composition>
+    <propertyOrganizer/>
+    <stickyBoard/>
+  </eClassifiers>
+</ecore:EPackage>

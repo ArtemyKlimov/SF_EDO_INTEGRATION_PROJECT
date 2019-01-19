@@ -1,0 +1,56 @@
+DECLARE AUTH_TOKEN SHARED CHARACTER;
+
+CREATE COMPUTE MODULE SF_EDO_SENDER_SendSF
+	DECLARE LDAP_USER EXTERNAL CHARACTER '';
+
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+				
+		
+		RETURN TRUE;
+	END;
+	
+END MODULE;
+
+
+CREATE COMPUTE MODULE SF_EDO_SENDER_ProcessHTTPSuccess
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CREATE LASTCHILD OF Environment.Variables.Response DOMAIN ('JSON') PARSE(InputRoot.BLOB.BLOB  ENCODING InputRoot.Properties.Encoding CCSID 1208 OPTIONS RootBitStream );
+		DECLARE SF_EDO_GUID CHAR Environment.Variables.Response.DocumentGuid;
+	END;	
+END MODULE;
+
+CREATE COMPUTE MODULE SF_EDO_SENDER_ProcessHTTPAuthSuccess
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CREATE LASTCHILD OF Environment.Variables.AuthResponse DOMAIN ('JSON') PARSE(InputRoot.BLOB.BLOB  ENCODING InputRoot.Properties.Encoding CCSID 1208 OPTIONS RootBitStream );
+		SET AUTH_TOKEN = Environment.Variables.AuthResponse.token;  --> сохраняем полученный токен в shared- переменной
+	END;
+END MODULE;
+
+CREATE COMPUTE MODULE SF_EDO_SENDER_ProcessHTTPError
+	DECLARE soapenv NAMESPACE 'http://schemas.xmlsoap.org/soap/envelope/';
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		
+		DECLARE responseCode CHAR InputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code";
+		IF responseCode = '401' OR responseCode = '403' THEN
+			SET AUTH_TOKEN = NULL;  -->если ошибка авторизации, то обнуляем shared-переменную
+			THROW USER EXCEPTION MESSAGE 3003 VALUES ('Ошибка авторизации');
+			RETURN FALSE;
+		END IF;
+		DECLARE ERROR_CODE CHARACTER COALESCE(InputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.soapenv:Fault.detail.*.errorCode, '');  --> получаем код ошибк
+		DECLARE ERROR_STRING CHARACTER COALESCE(InputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.soapenv:Fault.detail.*.errorString, ''); --> Получаем описание ошибки
+		THROW USER EXCEPTION MESSAGE 3001 VALUES (ERROR_CODE, ERROR_STRING);
+		RETURN FALSE;
+	END;	
+END MODULE;
+
+CREATE COMPUTE MODULE SF_EDO_SENDER_ProcessHTTPFailure
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		THROW USER EXCEPTION MESSAGE 3002 VALUES('Ошибка вызова веб-сервиса');
+		RETURN FALSE;
+	END;	
+END MODULE;
